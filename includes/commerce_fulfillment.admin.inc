@@ -101,7 +101,7 @@ function commerce_fulfillment_admin_form_submit($form, &$form_state){
   }
 
   //appends global variable package_type
-  for($i = $form_state['num_boxtypes']; $i>=0; $i--) {
+  for($i = $form_state['num_boxtypes']; $i>0; $i--) {
     $package_type[] = $form_state['values'][$i-1];
   }
 
@@ -147,59 +147,15 @@ function commerce_fulfillment_package_content($order){
   $order_wrapper = entity_metadata_wrapper( 'commerce_order', $order);
   $order_id = $order_wrapper->order_id->value();
 
-  $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
-  //@TODO - this has a lot of formatting, consider moving it out into a tpl in the future
-  $output = '<table><tr><td style = vertical-align:top>';
-  $output .= '<h2>' . t('Products in Order @order_id:', array('@order_id' => $order_id)) . '</h2>';
-
-  $output .= views_embed_view('commerce_fulfillment_line_items', 'default', $order_id);
-
-  $output .= '</td><td style = vertical-align:top><h2>' . t('Created Packages for This Order:') . '</h2>';
-
-  //outputs each package
-  foreach ($packages as $package) {
-    $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package);
-
-    $package_id = $package_wrapper->package_id->value();
-    $output .= '<h3>' . t('Package @package_id:', array('@package_id'=>$package_id)) . '</h3>';
-
-    $package_type = $package_wrapper->box_type->value();
-    $output .= '<p>&emsp;<strong>' . t('Type: ') . '</strong>'
-      . t('@package_type', array('@package_type' => $package_type)) . '</p>';
-    $output .= '<h4>'. t('Products in Package:') . '</h4>';
-
-    //creates an array of line_items that are in the specific package
-    $line_items = array();
-
-    foreach($package_wrapper->commerce_fulfillment_line_items->value() as $line_item){
-      $line_items[] = $line_item;
-    }
-
-    //outputs each line_item that are in the specific package
-    foreach ($line_items as $line_item) {
-      $line_item_id = $line_item->line_item_id;
-      $line_item_label = $line_item->line_item_label;
-      $line_item_quantity = $line_item->quantity;
-      $output .= '<p><strong>' . t('Product ID: ') . '</strong>' . t('@line_item_id', array('@line_item_id' => $line_item_id))
-        . '</p><p>&emsp;<strong>' . t('Product Code: ') . '</strong>' . t('@line_item_label', array('@line_item_label' => $line_item_label)). '</p>';
-      $output .= '<p>&emsp;<strong>' . t('Quantity: ') . '</strong>' . t('@line_item_quantity', array('@line_item_quantity' => $line_item_quantity)) . '</p>';
-    }
-
-    //outputs form to interact with the package
-    $get_form = drupal_get_form('commerce_fulfillment_manipulate_package_form_' . $package_wrapper->package_id->value(),
-      array('0' => $package_wrapper->package_id->value(), '1' => $order_id));
-    $output .= drupal_render($get_form);
-  }
-
-  //outputs forms to create a package and to print the packing slip for the selected package
-  $output.= t('</td></tr><tr>');
   $get_form = drupal_get_form('commerce_fulfillment_create_package_form', $order_id);
-  $output .= t('<td>' . drupal_render($get_form) . '</td>');
+  $output = drupal_render($get_form);
 
-  $get_form = drupal_get_form('commerce_fulfillment_packing_slip_form', $order_id);
-  $output .= t('<td>' . drupal_render($get_form) . '</td>');
+  //@TODO - this has a lot of formatting, consider moving it out into a tpl in the future
+  $output .= '<h2>' . t('Products in Order @order_id:', array('@order_id' => $order_id)) . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_line_items', 'line_item_block', $order_id);
 
-  $output .= t('</tr></table>');
+  $output .= '<h2>' . t('Packages:') . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_packages', 'package_package_block', $order_id);
 
   return $output;
 }
@@ -268,7 +224,7 @@ function commerce_fulfillment_create_package_form_submit($form, &$form_state){
     'order_id' => $order_wrapper->order_id->value(),
     'box_type' => $package_type[$form_state['values']['commerce_fulfillment_package_type']],
     'commerce_fulfillment_line_items' => NULL,
-    'shipping_info'=> array(
+    'commerce_fulfillment_shipping'=> array(
       'first_name' => $profile_wrapper->commerce_customer_address->first_name->value(),
       'last_name' => $profile_wrapper->commerce_customer_address->last_name->value(),
       'company' => $profile_wrapper->commerce_customer_address->organisation_name->value(),
@@ -329,71 +285,130 @@ function commerce_fulfillment_packing_slip_form_submit($form, &$form_state){
   $form_state['redirect'] = 'admin/commerce/orders/' . $form_state['values']['commerce_fulfillment_order_id'] .'/commerce_fulfillment/' . $argument . '/packing_slip';
 }
 
+
+/**
+ * @param $package_id
+ * @return string|void
+ *
+ * Tests to make sure user only selected one package.
+ * If user selected more than one package redirects the user back to the package page.
+ */
+function commerce_fulfillment_packing_slip_view($package_id){
+  if (strstr($package_id, ',')) {
+    drupal_set_message(t('Please select only one Package'), 'error');
+    $package_id = strtok($package_id, ',');
+    $package = entity_load('commerce_fulfillment_package', FALSE, array('package_id'=>$package_id));
+    $package = $package[$package_id];
+    $order_id = $package->order_id;
+    drupal_goto('admin/commerce/orders/'.$order_id.'/commerce_fulfillment/orders');
+  }
+  else {
+    commerce_fulfillment_packing_slip_content($package_id);
+  }
+}
+
+/**
+ * @param $shipment_id
+ * @return string|void
+ *
+ * Tests to make sure user only selected one shipment.
+ * If user selected more than one shipment redirects the user back to the shipments page.
+ */
+function commerce_fulfillment_shipping_label_view($shipment_id){
+  if (strstr($shipment_id, ',')) {
+    drupal_set_message(t('Please select only one Shipment'), 'error');
+    $shipment_id = strtok($shipment_id, ',');
+    $shipment = entity_load('commerce_fulfillment_shipment', FALSE, array('shipment_id'=>$shipment_id));
+    $shipment = $shipment[$shipment_id];
+    $order_id = $shipment->order_id;
+    drupal_goto('admin/commerce/orders/'.$order_id.'/commerce_fulfillment/shipments');
+  }
+  else {
+    commerce_fulfillment_shipping_label_content($shipment_id);
+  }
+}
+
 /**
  * @param $package_id
  *
  * The page to show and print the packing slip
  *
  */
-//@TODO this would also probably be a good candidate for a tpl
 function commerce_fulfillment_packing_slip_content($package_id){
-  $package_selected = entity_load('commerce_fulfillment_package', FALSE, array('package_id' => $package_id));
-  $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package_selected[$package_id]);
-  $order_id = $package_selected[$package_id]->order_id;
-  $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
-  $products = $package_wrapper->commerce_fulfillment_line_items->value();
+    $package_selected = entity_load('commerce_fulfillment_package', FALSE, array('package_id' => $package_id));
+    $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package_selected[$package_id]);
+    $order_id = $package_selected[$package_id]->order_id;
+    $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
+    $products = $package_wrapper->commerce_fulfillment_line_items->value();
 
-  $count = count($packages);
+    $count = count($packages);
 
-  $image = variable_get('commerce_fulfillment_logo', NULL);
+    $image = variable_get('commerce_fulfillment_logo', NULL);
 
-  if($image !== NULL) {
-    $image_obj = file_load($image);
+    if ($image !== NULL) {
+      $image_obj = file_load($image);
 
-    if (isset($image_obj->uri)) {
-      $image_obj_url = file_create_url($image_obj->uri);
+      if (isset($image_obj->uri)) {
+        $image_obj_url = file_create_url($image_obj->uri);
+      }
+
+    } else {
+      $image_obj_url = NULL;
     }
+    $company = variable_get('commerce_fulfillment_company');
+    $address = variable_get('commerce_fulfillment_address');
+    $phone = variable_get('commerce_fulfillment_phone');
 
-  }
-  else {
-    $image_obj_url = NULL;
-  }
+    $page = commerce_fulfillment_page_prerequisite();
 
-  $output = t('<table width = "700" border = "1"><tr><td width = "20%"><img src = "'. $image_obj_url .'"></td>');
-  $output .= t('<td width = "80%"><p></p><strong>Company Info.: <br></strong>&emsp;'
-    . variable_get('commerce_fulfillment_company', NULL) . '</p>&emsp;'
-    . variable_get('commerce_fulfillment_address', NULL) . '<br>&emsp;'
-    . variable_get('commerce_fulfillment_phone', NULL)
-    . '</td></tr>');
+    $output = theme('packing_slip', array(
+      'company' => $company,
+      'address' => $address,
+      'phone' => $phone,
+      'image' => $image_obj_url,
+      'products' => $products,
+      'count' => $count,
+      'page' => $page,
+    ));
 
-  $output .= t('<tr><td style = vertical-align:top align = "top" height = "500" colspan ="2">
-        <table cellpadding = "15" width = "700" >');
-  $output .= t('<th align = "left"> Product Code:</th><th align = "left"> Quantity</th>
-    <th align = "left"> Unit Price:</th><th align = "left"> Total Price:</th>');
-
-  foreach($products as $product){
-
-    $product_wrapper = entity_metadata_wrapper('commerce_line_item', $product);
-    $prices[0] = $product_wrapper->commerce_unit_price->amount->value();
-    $prices[1] = $product_wrapper->commerce_total->amount->value();
-
-    $length = strlen($prices[0]);
-    $prices[0] = substr_replace($prices[0], '.', $length - 2, 0);
-    $length = strlen($prices[1]);
-    $prices[1] = substr_replace($prices[1], '.', $length - 2, 0);
-
-    //@TODO possibly break this up into a few $output .= lines, makes it a bit easier to read and the speed is the same
-    $output .= t('<tr><td>' . $product->line_item_label . '</td><td>' . $product->quantity .'</td><td>' .
-      $prices[0] . ' ' . $product_wrapper->commerce_unit_price->currency_code->value() . '</td><td>' . $prices[1] . ' '
-      . $product_wrapper->commerce_total->currency_code->value() . '</td></tr>');
-  }
-
-  $output .= t('</table></td></tr>');
-  $output .= t('<tr><td colspan = "2"><strong>Package ID: </strong>' . $package_wrapper->package_id->value()
-    . '<br><strong>Package:</strong> 1 of ' . $count . '</td>');
-  $output.= t('</tr></table>');
-
-  print $output;
+    drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+    drupal_send_headers();
+    print $output;
+//  $output = t('<table width = "700" border = "1"><tr><td width = "20%"><img src = "'. $image_obj_url .'"></td>');
+//  $output .= t('<td width = "80%"><p></p><strong>Company Info.: <br></strong>&emsp;'
+//    . variable_get('commerce_fulfillment_company', NULL) . '</p>&emsp;'
+//    . variable_get('commerce_fulfillment_address', NULL) . '<br>&emsp;'
+//    . variable_get('commerce_fulfillment_phone', NULL)
+//    . '</td></tr>');
+//
+//  $output .= t('<tr><td style = vertical-align:top align = "top" height = "500" colspan ="2">
+//        <table cellpadding = "15" width = "700" >');
+//  $output .= t('<th align = "left"> Product Code:</th><th align = "left"> Quantity</th>
+//    <th align = "left"> Unit Price:</th><th align = "left"> Total Price:</th>');
+//
+//  foreach($products as $product){
+//
+//    $product_wrapper = entity_metadata_wrapper('commerce_line_item', $product);
+//    $prices[0] = $product_wrapper->commerce_unit_price->amount->value();
+//    $prices[1] = $product_wrapper->commerce_total->amount->value();
+//
+//    $length = strlen($prices[0]);
+//    $prices[0] = substr_replace($prices[0], '.', $length - 2, 0);
+//    $length = strlen($prices[1]);
+//    $prices[1] = substr_replace($prices[1], '.', $length - 2, 0);
+//
+//    //@TODO possibly break this up into a few $output .= lines, makes it a bit easier to read and the speed is the same
+//    $output .= t('<tr><td>' . $product->line_item_label . '</td><td>' . $product->quantity .'</td><td>' .
+//      $prices[0] . ' ' . $product_wrapper->commerce_unit_price->currency_code->value() . '</td><td>' . $prices[1] . ' '
+//      . $product_wrapper->commerce_total->currency_code->value() . '</td></tr>');
+//  }
+//
+//  $output .= t('</table></td></tr>');
+//  $output .= t('<tr><td colspan = "2"><strong>Package ID: </strong>' . $package_wrapper->package_id->value()
+//    . '<br><strong>Package:</strong> 1 of ' . $count . '</td>');
+//  $output.= t('</tr></table>');
+//
+//  print $output;
 }
 
 /**
@@ -407,68 +422,15 @@ function commerce_fulfillment_shipment_content($order) {
 
   $order_id = $order->order_id;
 
-  $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id'=>$order_id));
-  $packages_id = array();
   $shipments = entity_load('commerce_fulfillment_shipment', FALSE, array('order_id'=>$order_id));
+  dpm($shipments);
 
-  $output = t('<table border = "0"><tr><td style = vertical-align:top><h2>Created Packages for This Order:</h2>');
-
-  foreach ($packages as $package) {
-    $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package);
-    $package_id = $package_wrapper->package_id->value();
-    $packages_id[] = $package_wrapper->package_id->value();
-    $output .= t('<h3>Package ' . $package_id . ':</h3>');
-    $output .= t('<h4>Products in Package:</h4>');
-    $line_items = array();
-
-    foreach($package_wrapper->commerce_fulfillment_line_items->value() as $line_item){
-      $line_items[] = $line_item;
-    }
-
-    foreach ($line_items as $line_item) {
-      $line_item = entity_metadata_wrapper('commerce_line_item', $line_item);
-      $output .= t('<p><strong>Product ID: </strong>' .$line_item->line_item_id->value()
-        . '</p><p><strong>Product Code: </strong>' . $line_item->line_item_label->value() . '</p>');
-    }
-  }
-  $output .= t('</td><td style = vertical-align:top><h2>Created Shipments for This Order:</h2>');
-
-  foreach ($shipments as $shipment) {
-    $shipment_wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $shipment);
-    $shipment_id = $shipment_wrapper->shipment_id->value();
-    $output .= t('<h3>Shipment ' . $shipment_id . ':</h3>');
-    $output .= t('<p>&emsp;<strong>Tracking Number: </strong>' . $shipment_wrapper->tracking_number->value() . '</p>');
-    $output .= t('<p>&emsp;<strong>Date Created: </strong>'
-      . date("Y M d", strtotime($shipment->dates['created'])) . '</p>');
-    $output .= t('<p><strong>&emsp;Address: </strong>' . $shipment->shipping_info['address'] .
-      ', ' . $shipment->shipping_info['city'] . ' ' . $shipment->shipping_info['state'] .
-      ', ' . $shipment->shipping_info['country'] . ' ' . $shipment->shipping_info['zip'] . '</p>');
-
-    $output .= t('<h4>&emsp;Packages in Shipment:</h4>');
-    $packages = $shipment_wrapper->commerce_fulfillment_packages->value();
-
-    if($packages !== NULL) {
-
-      foreach ($packages as $package) {
-        $package = entity_metadata_wrapper('commerce_fulfillment_package', $package);
-        if ($package !== NULL) {
-          $output .= t('<p>&emsp;&emsp;<strong>Package ID: </strong>' . $package->package_id->value()
-            . '</p>');
-        }
-      }
-    }
-
-    $args = array($shipment_id);
-    $get_form = (drupal_get_form('commerce_fulfillment_manipulate_shipment_form_' . $shipment_id, $args));
-    $output .= drupal_render($get_form);
-  }
-
-  $output .= t('</td></tr><tr><td>');
   $get_form = drupal_get_form('commerce_fulfillment_create_shipment_form', $order_id);
-  $output .= drupal_render($get_form) . '</td>';
-
-  $get_form = drupal_get_form('commerce_fulfillment_shipping_label_print_form', $order_id);
-  $output .= t('<td>' . drupal_render($get_form) . '</td></tr></table>');
+  $output = drupal_render($get_form);
+  $output .= '<h2>' . t('Packages:') . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_packages', 'package_shipment_block', $order_id);
+  $output .= '<h2>' . t('Shipments:') . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_shipments', 'default', $order_id);
 
   return $output;
 }
@@ -544,23 +506,61 @@ function commerce_fulfillment_shipping_label_content($shipment_id){
     $image_obj_url = NULL;
   }
 
-  $output = t('<table border = "1px solid black" height = "350" width = "700"><tr><td height = "50%">
-    <strong> From: </Strong>' . variable_get('commerce_fulfillment_company', NULL) . '<br>&emsp;&emsp;&emsp;'
-    . variable_get('commerce_fulfillment_address', NULL)
-    . '<br>&emsp;&emsp;&emsp;' . variable_get('commerce_fulfillment_phone', NULL) . '</td>');
-  $output .= t('<td align = "center"><img src = "' . $image_obj_url .  '")></td></tr>');
-  $output .= t('<tr><td height = "50%"><strong>To: </strong>' . $shipment->shipping_info['firstName'] . ' '
-    . $shipment->shipping_info['lastName'] . '<br>'
-    . $shipment->shipping_info['address'] . '<br>' . $shipment->shipping_info['city'] . ', '
-    . $shipment->shipping_info['state'] . ', ' . $shipment->shipping_info['country'] . '<br>'
-    . $shipment->shipping_info['zip'] . '</td>');
-  $output .= t('<td width = "50%"><strong>Order ID: </strong>' . $shipment->order_id
-    . '<br><strong>Tracking Number: </strong>' . $shipment->tracking_number . '<br><strong>Shipping Method: </strong>'
-    . $shipment->method['method'] . '<br>' . '</tr></table>');
+  $company = variable_get('commerce_fulfillment_company');
+  $address = variable_get('commerce_fulfillment_address');
+  $phone = variable_get('commerce_fulfillment_phone');
 
+  $page = commerce_fulfillment_page_prerequisite();
+
+  $output = theme('shipping_label', array(
+    'company' => $company,
+    'address' => $address,
+    'phone' => $phone,
+    'image' => $image_obj_url,
+    'shipment' => $shipment,
+    'page' => $page,
+  ));
+
+  drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+  drupal_send_headers();
   print $output;
+//  $output = t('<table border = "1px solid black" height = "350" width = "700"><tr><td height = "50%">
+//    <strong> From: </Strong>' . variable_get('commerce_fulfillment_company', NULL) . '<br>&emsp;&emsp;&emsp;'
+//    . variable_get('commerce_fulfillment_address', NULL)
+//    . '<br>&emsp;&emsp;&emsp;' . variable_get('commerce_fulfillment_phone', NULL) . '</td>');
+//  $output .= t('<td align = "center"><img src = "' . $image_obj_url .  '")></td></tr>');
+//  $output .= t('<tr><td height = "50%"><strong>To: </strong>' . $shipment->shipping_info['firstName'] . ' '
+//    . $shipment->shipping_info['lastName'] . '<br>'
+//    . $shipment->shipping_info['address'] . '<br>' . $shipment->shipping_info['city'] . ', '
+//    . $shipment->shipping_info['state'] . ', ' . $shipment->shipping_info['country'] . '<br>'
+//    . $shipment->shipping_info['zip'] . '</td>');
+//  $output .= t('<td width = "50%"><strong>Order ID: </strong>' . $shipment->order_id
+//    . '<br><strong>Tracking Number: </strong>' . $shipment->tracking_number . '<br><strong>Shipping Method: </strong>'
+//    . $shipment->method['method'] . '<br>' . '</tr></table>');
+//
+//  print $output;
 }
 
+/**
+ * Prepare the array for the template with common details
+ * @see more _print_var_generator() in print.pages.inc of the Print module
+ */
+function commerce_fulfillment_page_prerequisite(){
+  global $base_url, $language;
+  $page = array();
+  $page['language'] = $language->language;
+  $page['head'] = drupal_get_html_head();
+  $page['title'] = '';
+  $page['scripts'] = drupal_get_js();
+  $page['favicon'] = '';
+  // if there is a custom css file for this page
+  // drupal_add_css(drupal_get_path('module', 'mymodule') . '/css/mylogin.css');
+  $page['css'] = drupal_get_css();
+  $page['message'] = drupal_get_messages();
+  $page['footer_scripts'] = drupal_get_js('footer');
+
+  return $page;
+}
 /**
  * @param $form
  * @param $form_state
@@ -607,26 +607,33 @@ function commerce_fulfillment_create_shipment_form_submit(&$form, &$form_state){
   $order = commerce_order_load($order_id);
   $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   $profile = commerce_customer_profile_load($order_wrapper->commerce_customer_shipping->profile_id->value());
+
   $profile_wrapper = entity_metadata_wrapper('commerce_customer_profile', $profile);
 
   $entity = entity_create('commerce_fulfillment_shipment', array(
     'order_id' => $order->order_id,
-    'status' => 'pending',
-    'dates' => array(
-      'created' => date('ymd'),
-    ),
-    'shipping_info' => array(
-      'firstName' => $profile_wrapper->commerce_customer_address->first_name->value(),
-      'lastName' => $profile_wrapper->commerce_customer_address->last_name->value(),
-      'company' => $profile_wrapper->commerce_customer_address->organisation_name->value(),
-      'address' => $profile_wrapper->commerce_customer_address->thoroughfare->value(),
-      'city' => $profile_wrapper->commerce_customer_address->locality->value(),
-      'state' => $profile_wrapper->commerce_customer_address->administrative_area->value(),
-      'zip' => $profile_wrapper->commerce_customer_address->postal_code->value(),
-      'country' => $profile_wrapper->commerce_customer_address->country->value(),
-    ),
+    'status' => 'Pending',
     'tracking_number' => $form_state['values']['commerce_fulfillment_tracking_number'],
   ));
 
   $entity->save('commerce_fulfillment_shipment', $entity);
+
+  //commerce_fulfillment_shipping will not save from the entity_create. So we create an Entity Metadata Wrapper to do the job.
+  $shipment_wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $entity);
+  $shipping_array = array(
+    $profile_wrapper->commerce_customer_address->first_name->value(),
+    $profile_wrapper->commerce_customer_address->last_name->value(),
+    $profile_wrapper->commerce_customer_address->organisation_name->value(),
+    $profile_wrapper->commerce_customer_address->thoroughfare->value(),
+    $profile_wrapper->commerce_customer_address->locality->value(),
+    $profile_wrapper->commerce_customer_address->administrative_area->value(),
+    $profile_wrapper->commerce_customer_address->postal_code->value(),
+    $profile_wrapper->commerce_customer_address->country->value(),
+    array(
+      date('ymd'),
+    ),
+  );
+
+  $shipment_wrapper->commerce_fulfillment_shipping->set($shipping_array);
+  $shipment_wrapper->save();
 }
