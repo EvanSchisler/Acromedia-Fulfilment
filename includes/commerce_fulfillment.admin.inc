@@ -103,6 +103,7 @@ function commerce_fulfillment_admin_form_submit($form, &$form_state){
   //appends global variable package_type
   for($i = $form_state['num_boxtypes']; $i>0; $i--) {
 
+    //checks that the user has entered something into the textbox
     if ($form_state['values'][$i - 1] !== '') {
       $package_type[] = $form_state['values'][$i - 1];
     }
