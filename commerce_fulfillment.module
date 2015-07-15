@@ -336,9 +336,11 @@ function commerce_fulfillment_configure_shipment_type($type = 'commerce_fulfillm
 function commerce_fulfillment_theme() {
   return array(
     'packing_slip' => array(
+      'arguments' => array('vars' => NULL),
       'template' => 'templates/commerce_fulfillment--packing_slip',
     ),
     'shipping_label' => array(
+      'arguments' => array('vars' => NULL),
       'template' => 'templates/commerce_fulfillment--shipping_label'
     ),
   );

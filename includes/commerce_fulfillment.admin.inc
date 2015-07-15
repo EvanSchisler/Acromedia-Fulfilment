@@ -154,7 +154,6 @@ function commerce_fulfillment_package_content($order){
   $get_form = drupal_get_form('commerce_fulfillment_create_package_form', $order_id);
   $output = drupal_render($get_form);
 
-  //@TODO - this has a lot of formatting, consider moving it out into a tpl in the future
   $output .= '<h2>' . t('Products in Order @order_id:', array('@order_id' => $order_id)) . '</h2>';
   $output .= views_embed_view('commerce_fulfillment_line_items', 'line_item_block', $order_id);
 
@@ -228,19 +227,27 @@ function commerce_fulfillment_create_package_form_submit($form, &$form_state){
     'order_id' => $order_wrapper->order_id->value(),
     'box_type' => $package_type[$form_state['values']['commerce_fulfillment_package_type']],
     'commerce_fulfillment_line_items' => NULL,
-    'commerce_fulfillment_shipping'=> array(
-      'first_name' => $profile_wrapper->commerce_customer_address->first_name->value(),
-      'last_name' => $profile_wrapper->commerce_customer_address->last_name->value(),
-      'company' => $profile_wrapper->commerce_customer_address->organisation_name->value(),
-      'address' => $profile_wrapper->commerce_customer_address->thoroughfare->value(),
-      'city' => $profile_wrapper->commerce_customer_address->locality->value(),
-      'state' => $profile_wrapper->commerce_customer_address->administrative_area->value(),
-      'zip' => $profile_wrapper->commerce_customer_address->postal_code->value(),
-      'country' => $profile_wrapper->commerce_customer_address->country->value(),
-    ),
   ));
 
   $entity->save('commerce_fulfillment_package', $entity);
+
+  //commerce_fulfillment_package will not save from the entity_create. So we create an Entity Metadata Wrapper to do the job.
+  $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $entity);
+  $shipping_array = array(
+    $profile_wrapper->commerce_customer_address->first_name->value(),
+    $profile_wrapper->commerce_customer_address->last_name->value(),
+    $profile_wrapper->commerce_customer_address->thoroughfare->value(),
+    $profile_wrapper->commerce_customer_address->locality->value(),
+    $profile_wrapper->commerce_customer_address->administrative_area->value(),
+    $profile_wrapper->commerce_customer_address->postal_code->value(),
+    $profile_wrapper->commerce_customer_address->country->value(),
+    array(
+      date('ymd'),
+    ),
+  );
+
+  $package_wrapper->commerce_fulfillment_shipping->set($shipping_array);
+  $package_wrapper->save();
 }
 /**
  * @param $form
@@ -345,6 +352,8 @@ function commerce_fulfillment_packing_slip_content($package_id){
     $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
     $products = $package_wrapper->commerce_fulfillment_line_items->value();
 
+    $shipping = $package_wrapper->commerce_fulfillment_shipping->value();
+
     $count = count($packages);
 
     $image = variable_get('commerce_fulfillment_logo', NULL);
@@ -370,6 +379,7 @@ function commerce_fulfillment_packing_slip_content($package_id){
       'address' => $address,
       'phone' => $phone,
       'image' => $image_obj_url,
+      'shipping' => $shipping,
       'products' => $products,
       'count' => $count,
       'page' => $page,
@@ -556,8 +566,7 @@ function commerce_fulfillment_page_prerequisite(){
   $page['title'] = '';
   $page['scripts'] = drupal_get_js();
   $page['favicon'] = '';
-  // if there is a custom css file for this page
-  // drupal_add_css(drupal_get_path('module', 'mymodule') . '/css/mylogin.css');
+  drupal_add_css(drupal_get_path('module', 'commerce_fulfillment') . '/css/commerce_fulfillment.css');
   $page['css'] = drupal_get_css();
   $page['message'] = drupal_get_messages();
   $page['footer_scripts'] = drupal_get_js('footer');
@@ -626,7 +635,6 @@ function commerce_fulfillment_create_shipment_form_submit(&$form, &$form_state){
   $shipping_array = array(
     $profile_wrapper->commerce_customer_address->first_name->value(),
     $profile_wrapper->commerce_customer_address->last_name->value(),
-    $profile_wrapper->commerce_customer_address->organisation_name->value(),
     $profile_wrapper->commerce_customer_address->thoroughfare->value(),
     $profile_wrapper->commerce_customer_address->locality->value(),
     $profile_wrapper->commerce_customer_address->administrative_area->value(),
