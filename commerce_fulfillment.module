@@ -944,7 +944,6 @@ function commerce_fulfillment_get_array($order_id, $index = 'false', $type){
   elseif($type == 'package_in_order'){
     $entity_array = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
 
-
     foreach($entity_array as $entity){
       $entity = entity_metadata_wrapper('commerce_fulfillment_package', $entity);
       $id_array[] = $entity->package_id->value();

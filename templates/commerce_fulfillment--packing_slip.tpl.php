@@ -1,4 +1,5 @@
 <?php
+$total = 0;
 if(isset($vars)) {
 
   if(isset($vars['$image_obj_url'])){
@@ -40,7 +41,9 @@ if(isset($vars)) {
   if(isset($vars['page'])){
     $page = $vars['page'];
   }
-  $count = $vars['count'];
+  if(isset($vars['count'])) {
+    $pack_count = $vars['count'];
+  }
 }
 
 ?>
@@ -83,6 +86,77 @@ if(isset($vars)) {
         }
       ?>
     </p>
+  </div>
+  <div>
+    <table>
+      <tr>
+        <th>Item #:</th>
+        <th>Item Name:</th>
+        <th>Quantity:</th>
+        <th>Price:</th>
+        <th>Item Total:</th>
+      </tr>
+      <?php
+      $count = 0;
+      if($products !== NULL){
+      foreach($products as $line_item){?>
+      <tr>
+        <?php
+        $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+          ?>
+          <td>
+            <?php print t($line_item_wrapper->line_item_label->value()); ?>
+          </td>
+          <td>
+            <?php
+              $com_product = commerce_product_load($line_item_wrapper->commerce_product->product_id->value());
+              $com_product_wrapper = entity_metadata_wrapper('commerce_product', $com_product);
+              print t($com_product_wrapper->title->value());
+            ?>
+          </td>
+          <td>
+            <?php print t($line_item_wrapper->quantity->value()); ?>
+          </td>
+          <td>
+            <?php
+            $price = $line_item_wrapper->commerce_unit_price->amount->value();
+            $length = strlen($price);
+            $price = substr_replace($price, '.', $length - 2, 0);
+            print t('$@price', array('@price' => $price));
+            ?>
+          </td>
+          <td>
+            <?php
+            $price = $line_item_wrapper->commerce_total->amount->value();
+            $length = strlen($price);
+            $price = substr_replace($price, '.', $length - 2, 0);
+            print t('$@price', array('@price' => $price));
+            $total += $line_item_wrapper->commerce_total->amount->value();
+            $count++;
+            ?>
+          </td>
+        </tr>
+        <?php } }
+        $count = 20 - $count;
+        for($i = $count; $i>0; $i--){
+        ?>
+      <tr>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+      </tr>
+      <?php } ?>
+    </table>
+    <div class="package-info">
+      <span class="package-count">
+        <?php print t('Package: 1 of @count', array('@count' => $pack_count)); ?>
+      </span>
+      <span class="package-total">
+        <?php print t('Total: @total', array('@total' => $total)); ?>
+      </span>
+    </div>
   </div>
   </body>
 </html>

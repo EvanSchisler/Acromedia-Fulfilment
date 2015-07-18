@@ -351,7 +351,6 @@ function commerce_fulfillment_packing_slip_content($package_id){
     $order_id = $package_selected[$package_id]->order_id;
     $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
     $products = $package_wrapper->commerce_fulfillment_line_items->value();
-
     $shipping = $package_wrapper->commerce_fulfillment_shipping->value();
 
     $count = count($packages);
@@ -384,7 +383,6 @@ function commerce_fulfillment_packing_slip_content($package_id){
       'count' => $count,
       'page' => $page,
     ));
-
     drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
     drupal_send_headers();
     print $output;
