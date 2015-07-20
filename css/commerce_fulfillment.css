@@ -1,0 +1,21 @@
+body{
+  width: 820px;
+}
+#header{
+  width: 100%;
+  float: left;
+}
+.company-info{
+  width: 30%;
+  display: inline-block;
+  float: left;
+}
+.slip-head{
+  width: 30%;
+  display: inline-block;
+  float: right;
+}
+.customer-label{
+  padding: 5px 150px 5px 5px;
+  background: #aaa;
+}
