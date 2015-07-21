@@ -1,4 +1,10 @@
 <?php
+
+/**
+ * @file
+ * Export code for the Shipments view.
+ */
+
 $view = new view();
 $view->name = 'commerce_fulfillment_shipments';
 $view->description = '';
@@ -22,12 +28,12 @@ $handler->display->display_options['pager']['options']['offset'] = '0';
 $handler->display->display_options['style_plugin'] = 'table_megarows';
 $handler->display->display_options['row_plugin'] = 'fields';
 $handler->display->display_options['row_options']['inline'] = array(
-'views_bulk_operations' => 'views_bulk_operations',
-'shipment_id' => 'shipment_id',
-'status' => 'status',
-'commerce_fulfillment_packages' => 'commerce_fulfillment_packages',
-'tracking_number' => 'tracking_number',
-'commerce_fulfillment_shipping' => 'commerce_fulfillment_shipping',
+  'views_bulk_operations' => 'views_bulk_operations',
+  'shipment_id' => 'shipment_id',
+  'status' => 'status',
+  'commerce_fulfillment_packages' => 'commerce_fulfillment_packages',
+  'tracking_number' => 'tracking_number',
+  'commerce_fulfillment_shipping' => 'commerce_fulfillment_shipping',
 );
 /* Field: Bulk operations: Commerce Fulfillment Shipment */
 $handler->display->display_options['fields']['views_bulk_operations']['id'] = 'views_bulk_operations';
@@ -40,80 +46,80 @@ $handler->display->display_options['fields']['views_bulk_operations']['vbo_setti
 $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['force_single'] = 0;
 $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['entity_load_capacity'] = '10';
 $handler->display->display_options['fields']['views_bulk_operations']['vbo_operations'] = array(
-'action::commerce_fulfillment_add_package_action' => array(
-'selected' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
-'action::commerce_fulfillment_add_product_action' => array(
-'selected' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
-'action::views_bulk_operations_delete_item' => array(
-'selected' => 1,
-'postpone_processing' => 0,
-'skip_confirmation' => 0,
-'override_label' => 1,
-'label' => 'Delete Shipment',
-),
-'action::views_bulk_operations_delete_revision' => array(
-'selected' => 0,
-'postpone_processing' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
-'action::views_bulk_operations_script_action' => array(
-'selected' => 0,
-'postpone_processing' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
-'action::views_bulk_operations_modify_action' => array(
-'selected' => 0,
-'postpone_processing' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-'settings' => array(
-'show_all_tokens' => 1,
-'display_values' => array(
-'_all_' => '_all_',
-),
-),
-),
-'action::views_bulk_operations_argument_selector_action' => array(
-'selected' => 1,
-'skip_confirmation' => 1,
-'override_label' => 1,
-'label' => 'Print Shipping Label',
-'settings' => array(
-'url' => 'admin/commerce/orders/commerce_fulfillment/shipping_label/',
-),
-),
-'action::commerce_fulfillment_remove_package_action' => array(
-'selected' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
-'action::commerce_fulfillment_remove_product_action' => array(
-'selected' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
-'action::system_send_email_action' => array(
-'selected' => 0,
-'postpone_processing' => 0,
-'skip_confirmation' => 0,
-'override_label' => 0,
-'label' => '',
-),
+  'action::commerce_fulfillment_add_package_action' => array(
+    'selected' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
+  'action::commerce_fulfillment_add_product_action' => array(
+    'selected' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
+  'action::views_bulk_operations_delete_item' => array(
+    'selected' => 1,
+    'postpone_processing' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 1,
+    'label' => 'Delete Shipment',
+  ),
+  'action::views_bulk_operations_delete_revision' => array(
+    'selected' => 0,
+    'postpone_processing' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
+  'action::views_bulk_operations_script_action' => array(
+    'selected' => 0,
+    'postpone_processing' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
+  'action::views_bulk_operations_modify_action' => array(
+    'selected' => 0,
+    'postpone_processing' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+    'settings' => array(
+      'show_all_tokens' => 1,
+      'display_values' => array(
+        '_all_' => '_all_',
+      ),
+    ),
+  ),
+  'action::views_bulk_operations_argument_selector_action' => array(
+    'selected' => 1,
+    'skip_confirmation' => 1,
+    'override_label' => 1,
+    'label' => 'Print Shipping Label',
+    'settings' => array(
+      'url' => 'admin/commerce/orders/commerce_fulfillment/shipping_label/',
+    ),
+  ),
+  'action::commerce_fulfillment_remove_package_action' => array(
+    'selected' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
+  'action::commerce_fulfillment_remove_product_action' => array(
+    'selected' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
+  'action::system_send_email_action' => array(
+    'selected' => 0,
+    'postpone_processing' => 0,
+    'skip_confirmation' => 0,
+    'override_label' => 0,
+    'label' => '',
+  ),
 );
 /* Field: Commerce Fulfillment Shipment: Commerce fulfillment shipment ID */
 $handler->display->display_options['fields']['shipment_id']['id'] = 'shipment_id';
@@ -132,8 +138,8 @@ $handler->display->display_options['fields']['commerce_fulfillment_packages']['e
 $handler->display->display_options['fields']['commerce_fulfillment_packages']['element_default_classes'] = FALSE;
 $handler->display->display_options['fields']['commerce_fulfillment_packages']['type'] = 'entityreference_entity_id';
 $handler->display->display_options['fields']['commerce_fulfillment_packages']['settings'] = array(
-'view_mode' => 'default',
-'links' => 1,
+  'view_mode' => 'default',
+  'links' => 1,
 );
 $handler->display->display_options['fields']['commerce_fulfillment_packages']['delta_offset'] = '0';
 $handler->display->display_options['fields']['commerce_fulfillment_packages']['field_api_classes'] = TRUE;

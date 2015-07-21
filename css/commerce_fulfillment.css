@@ -1,7 +1,7 @@
-
 body {
   width: 820px;
 }
+
 /* Packing Slip */
 #packing-header {
   width: 100%;
@@ -14,7 +14,7 @@ body {
   float: left;
 }
 
-.header-company img{
+.header-company img {
   max-width: 250px;
   max-height: 250px;
 }
@@ -28,54 +28,54 @@ body {
 
 .customer-label {
   padding: 5px 150px 5px 0;
- }
+}
 
-.main-table{
+.main-table {
   width: 100%;
   border: 1px solid #aaa;
   margin-bottom: 0;
 }
 
-.main-table .empty-row td{
+.main-table .empty-row td {
   padding: 17px 15px 16px;
 }
 
-.main-table td{
+.main-table td {
   padding: 9px;
 }
 
-.package-total{
+.package-total {
   float: right;
 }
 
 /* Shipping Label */
-.shipping-wrapper{
+.shipping-wrapper {
   float: left;
   width: 100%;
   border: 1px solid #000;
   padding: 25px;
 }
 
-.tracking-number{
+.tracking-number {
   float: right;
 }
 
-.shipping-company{
+.shipping-company {
   float: left;
 }
 
-.customer-shipping-info{
+.customer-shipping-info {
   float: left;
   width: 100%;
   padding-bottom: 150px;
   text-align: center;
 }
 
-.customer-shipping-info p{
+.customer-shipping-info p {
   font-size: 24px;
 }
 
-.customer-shipping-info .customer-label{
+.customer-shipping-info .customer-label {
   margin: 0 auto;
   padding: 0;
 }

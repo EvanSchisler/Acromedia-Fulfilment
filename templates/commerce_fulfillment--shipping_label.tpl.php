@@ -1,6 +1,11 @@
 <html>
   <head>
-    <?php print $page['css']; ?>
+    <?php
+/**
+ * @file
+ * Template for the shipping label.
+ */
+print $page['css']; ?>
   </head>
   <body>
     <div class="shipping-wrapper">
@@ -9,7 +14,8 @@
           <img src="<?php print $image; ?>" />
           <p class="shipping-company-info">
             <?php
-              print '<strong>' . t($company) . '</strong><br>' . t($address) . '<br>' . t('Phone: @phone', array('@phone' => $phone));
+              print '<strong>' . t('@company', array('@company' => $company)) . '</strong><br>'
+                  . t('@address', array('@address' => $address)) . '<br>' . t('Phone: @phone', array('@phone' => $phone));
             ?>
           </p>
         </div>
@@ -27,11 +33,16 @@
         </span>
           <br>
           <?php
-          if($shipping !== NULL) {
-            print t($shipping[0]) . ' ' . t($shipping[1]) . '<br>';
-            print t('@ship_add, @ship_city @ship_state', array('@ship_add' => $shipping[2], '@ship_city' => $shipping[3], '@ship_state' => $shipping[4])) . '<br>';
+          if($shipping !== NULL):
+            print t('@shipping1 @shipping2', array('@shipping1' => $shipping[0], '@shipping2' => $shipping[1])) . '<br>';
+            print t('@ship_add, @ship_city @ship_state', array(
+                '@ship_add' => $shipping[2],
+                '@ship_city' => $shipping[3],
+                '@ship_state' => $shipping[4],
+              )) . '<br>';
+
             print t('@ship_zip, @ship_country', array('@ship_zip' => $shipping[5], '@ship_country' => $shipping[6]));
-          }
+          endif;
           ?>
         </p>
       </div>

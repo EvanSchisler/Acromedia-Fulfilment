@@ -1,22 +1,22 @@
 <?php
 
 /**
- * @param $form
- * @param $form_state
- * @return array
- * Implements hook_form
- * Creates an admin page form
- * Will use this data to print packing slips and shipping labels
+ * @file
+ * This file is for anything related to the admin page.
  */
-function commerce_fulfillment_admin_form($form, &$form_state){
+
+/**
+ * Implements hook_form().
+ */
+function commerce_fulfillment_admin_form($form, &$form_state) {
 
   $form = array();
 
   $form['commerce_fulfillment_title'] = array(
-    '#markup' => '<h2>' . t('Admin Page') . '</h2>'
+    '#markup' => '<h2>' . t('Admin Page') . '</h2>',
   );
 
-  //Creates separate information fields
+  // Creates separate information fields.
   $form['commerce_fulfillment_company_information'] = array(
     '#type' => 'fieldset',
     '#title' => t("Enter your company's information below"),
@@ -44,11 +44,11 @@ function commerce_fulfillment_admin_form($form, &$form_state){
     '#required' => TRUE,
   );
 
-  if(!isset($form_state['num_boxtypes'])){
+  if (!isset($form_state['num_boxtypes'])) {
     $form_state['num_boxtypes'] = 1;
   }
 
-  for($i = 0; $i < $form_state['num_boxtypes']; $i++){
+  for ($i = 0; $i < $form_state['num_boxtypes']; $i++) {
     $form['commerce_fulfillment_company_information']['commerce_fulfillment_boxtype'][$i] = array(
       '#type' => 'textfield',
       '#title' => t('Add Package Type:'),
@@ -68,11 +68,11 @@ function commerce_fulfillment_admin_form($form, &$form_state){
 
   $form['#attributes']['enctype'] = 'multipart/form-data';
 
-  $form['commerce_fulfillment_company_information']['commerce_fulfillment_logo']=array(
+  $form['commerce_fulfillment_company_information']['commerce_fulfillment_logo'] = array(
     '#type' => 'managed_file',
     '#title' => t('Upload your company logo:'),
     '#default_value' => variable_get('commerce_fulfillment_logo', NULL),
-    '#upload_location' => 'public://logo/'
+    '#upload_location' => 'public://logo/',
   );
 
   $form = system_settings_form($form);
@@ -82,25 +82,23 @@ function commerce_fulfillment_admin_form($form, &$form_state){
 }
 
 /**
- *  @param $form
- *  @param $form_state
- *  Implements hook hook_form_submit
- *  Does not override system_settings_form submit.
- *  Just handles submission of the package_type variable
+ * Implements hook_form_submit().
+ *
+ * Does not override system_settings_form submit.
+ * Just handles submission of the package_type variable.
  */
-
-function commerce_fulfillment_admin_form_submit($form, &$form_state){
+function commerce_fulfillment_admin_form_submit($form, &$form_state) {
 
   $package_type = variable_get('commerce_fulfillment_package_type', NULL);
 
-  if($package_type == NULL) {
+  if ($package_type == NULL) {
     $package_type = array();
   }
 
-  //appends global variable package_type
-  for($i = $form_state['num_boxtypes']; $i > 0; $i--) {
+  // Appends global variable package_type
+  for ($i = $form_state['num_boxtypes']; $i > 0; $i--) {
 
-    //checks that the user has entered something into the textbox
+    // Checks that the user has entered something into the textbox.
     if ($form_state['values'][$i - 1] !== '') {
       $package_type[] = $form_state['values'][$i - 1];
     }
@@ -110,27 +108,30 @@ function commerce_fulfillment_admin_form_submit($form, &$form_state){
 }
 
 /**
- * @param $form
- * @param $form_state
- * @return mixed
+ * Ajax Callback for boxtypes.
  *
- * Ajax Callback for boxtypes
+ * @param array $form
+ *   The form that is being rebuilt.
+ * @param array $form_state
+ *   Values from the form.
  *
- * Returns the fieldset for the form.
+ * @return array mixed
+ *
+ *   Returns the fieldset for the form.
  */
-function commerce_fulfillment_add_more_callback($form, &$form_state){
+function commerce_fulfillment_add_more_callback(array $form, array &$form_state) {
   return $form['commerce_fulfillment_company_information'];
 }
 
 /**
- * @param $form
- * @param $form_state
- *
  * Submit handler for the "add-one-more" button.
  *
- * Increments the max counter and causes a rebuild.
+ * @param array $form
+ *   The form that is being rebuilt.
+ * @param array $form_state
+ *   Values from the form.
  */
-function commerce_fulfillment_add_more_add_one($form, &$form_state) {
+function commerce_fulfillment_add_more_add_one(array $form, array &$form_state) {
   $form_state['num_boxtypes']++;
   $form_state['rebuild'] = TRUE;
 }
