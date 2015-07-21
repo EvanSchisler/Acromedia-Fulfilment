@@ -78,5 +78,5 @@ function commerce_fulfillment_uninstall(){
   variable_del('commerce_fulfillment_phone');
   variable_del('commerce_fulfillment_boxtype');
   variable_del('commerce_fulfillment_logo');
-  drupal_flush_all_caches();
+
 }
