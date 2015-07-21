@@ -1,67 +1,15 @@
 <?php
 $total = 0;
-if(isset($vars)) {
-
-  if(isset($vars['$image_obj_url'])){
-    $image = $vars['$image_obj_url'];
-  }
-  else{
-    $image = 'Company Logo';
-  }
-  if(isset($vars['company'])) {
-    $company = $vars['company'];
-  }
-  else{
-    $company = '[Company Name]';
-  }
-  if(isset($vars['address'])) {
-    $address = $vars['address'];
-  }
-  else{
-    $address = '[Company Address]';
-  }
-  if(isset($vars['phone'])) {
-    $phone = $vars['phone'];
-  }
-  else{
-    $address = '[Company Phone Number]';
-  }
-  if(isset($vars['products'])){
-    $products = $vars['products'];
-  }
-  else{
-    $products = NULL;
-  }
-  if(isset($vars['shipping'])){
-    $shipping = $vars['shipping'];
-  }
-  else{
-    $shipping = NULL;
-  }
-  if(isset($vars['page'])){
-    $page = $vars['page'];
-  }
-  if(isset($vars['count'])) {
-    $pack_count = $vars['count'];
-  }
-}
-
 ?>
 <html>
   <head>
     <?php print $page['css']?>
   </head>
   <body>
-    <div id="header">
-      <div class="company-info">
-        <?php
-        if($image !== NULL){
-        ?>
-        <img src=" <?php print $image; ?> " />
-        <?php } else { ?>
-          <p class="image-place">Company Logo </p>
-        <?php } ?>
-        <p>
+    <div id="packing-header">
+      <div class="header-company">
+        <img src="<?php print $image; ?>" />
+        <p class="company-info">
         <?php
           print '<strong>' . t($company) . '</strong><br>' . t($address) . '<br>'. t('Phone: @phone', array('@phone' => $phone));
         ?>
@@ -69,27 +17,30 @@ if(isset($vars)) {
       </div>
       <div class="slip-head">
         <h1>Packing Slip</h1>
-        <p>Date: <?php print date('y/m/d');?></p>
+        <p>
+          Date: <?php print date('y/m/d');?><br>
+          Package Type: <?php print $package_type ?>
+        </p>
       </div>
     </div>
   <div class="customer-info">
     <p>
       <span class="customer-label">
-          Ship To:
+          <Strong>Ship To:</strong>
       </span>
       <br>
       <?php
         if($shipping !== NULL) {
           print t($shipping[0]) . ' ' . t($shipping[1]) . '<br>';
-          print t('@ship_add, @ship_city @ship_state', array('@ship_add'=>$shipping[2], '@ship_city'=>$shipping[3], '@ship_state'=>$shipping[4])) . '<br>';
-          print t('@ship_zip, @ship_country', array('@ship_zip'=>$shipping[5], '@ship_country'=>$shipping[6]));
+          print t('@ship_add, @ship_city @ship_state', array('@ship_add' => $shipping[2], '@ship_city' => $shipping[3], '@ship_state' => $shipping[4])) . '<br>';
+          print t('@ship_zip, @ship_country', array('@ship_zip' => $shipping[5], '@ship_country' => $shipping[6]));
         }
       ?>
     </p>
   </div>
-  <div>
-    <table>
-      <tr>
+  <div id="product-table">
+    <table class="main-table">
+      <tr class="table-header">
         <th>Item #:</th>
         <th>Item Name:</th>
         <th>Quantity:</th>
@@ -97,27 +48,27 @@ if(isset($vars)) {
         <th>Item Total:</th>
       </tr>
       <?php
-      $count = 0;
+      $row_count = 0;
       if($products !== NULL){
       foreach($products as $line_item){?>
-      <tr>
+      <tr class="populated-row">
         <?php
         $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
           ?>
-          <td>
+          <td class="product-name-cell">
             <?php print t($line_item_wrapper->line_item_label->value()); ?>
           </td>
-          <td>
+          <td class="product-id-cell">
             <?php
               $com_product = commerce_product_load($line_item_wrapper->commerce_product->product_id->value());
               $com_product_wrapper = entity_metadata_wrapper('commerce_product', $com_product);
               print t($com_product_wrapper->title->value());
             ?>
           </td>
-          <td>
+          <td class="quantity-cell">
             <?php print t($line_item_wrapper->quantity->value()); ?>
           </td>
-          <td>
+          <td class="unit-price-cell">
             <?php
             $price = $line_item_wrapper->commerce_unit_price->amount->value();
             $length = strlen($price);
@@ -125,22 +76,22 @@ if(isset($vars)) {
             print t('$@price', array('@price' => $price));
             ?>
           </td>
-          <td>
+          <td class="total-price-cell">
             <?php
             $price = $line_item_wrapper->commerce_total->amount->value();
             $length = strlen($price);
             $price = substr_replace($price, '.', $length - 2, 0);
             print t('$@price', array('@price' => $price));
             $total += $line_item_wrapper->commerce_total->amount->value();
-            $count++;
+            $row_count++;
             ?>
           </td>
         </tr>
         <?php } }
-        $count = 20 - $count;
-        for($i = $count; $i>0; $i--){
+        $row_count = 20 - $row_count;
+        for($i = $row_count; $i>0; $i--){
         ?>
-      <tr>
+      <tr class="empty-row">
           <td></td>
           <td></td>
           <td></td>
@@ -151,10 +102,15 @@ if(isset($vars)) {
     </table>
     <div class="package-info">
       <span class="package-count">
-        <?php print t('Package: 1 of @count', array('@count' => $pack_count)); ?>
+        <?php print t('Package: 1 of @count', array('@count' => $count)); ?>
       </span>
       <span class="package-total">
-        <?php print t('Total: @total', array('@total' => $total)); ?>
+
+        <?php
+        $length = strlen($total);
+        $total = substr_replace($total, '.', $length - 2, 0);
+        print t('Total: $@total', array('@total' => $total));
+        ?>
       </span>
     </div>
   </div>
