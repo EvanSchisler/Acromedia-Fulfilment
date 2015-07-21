@@ -9,6 +9,30 @@
 function commerce_fulfillment_menu() {
   $items = array();
 
+  // Creates the Commerce Fulfillment area under the store settings tab
+  $items['admin/commerce/config/advanced-settings/commerce_fulfillment'] = array(
+    'title'=> t('Commerce Fulfillment'),
+    'description' => t('Options for Commerce Fulfillment'),
+    'position' => 'left',
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer site configuration'),
+    'weight' => 8,
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+
+  // Creates the link inside of the Commerce Fulfillment area.
+  $items['admin/commerce/config/advanced-settings/commerce_fulfillment/settings'] = array(
+    'title' => t('Admin Options'),
+    'description' => t('Add company information, package sizes and company logo.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('commerce_fulfillment_admin_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'commerce_fulfillment.admin.inc',
+    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
+  );
+
   //Creates the commerce fulfillment link
   $items['admin/commerce/orders/%commerce_order/commerce_fulfillment'] = array(
     'title' => t('Fulfillment'),
@@ -18,26 +42,10 @@ function commerce_fulfillment_menu() {
     'access arguments' => array('update', 3),
     'type' => MENU_LOCAL_TASK,
     'weight' => 50,
-    'file' => 'commerce_fulfillment.admin.inc',
-    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
-  );
-
-  // Creates the admin option link under the fulfillment tab
-  $items['admin/commerce/orders/%commerce_order/commerce_fulfillment/admin'] = array(
-    'title'=> t('Admin Options'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('commerce_fulfillment_admin_form', 3),
-    'access callback' => 'commerce_order_access',
-    'access arguments' => array('update', 3),
-    'access callback' => true,
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 51,
-    'file' => 'commerce_fulfillment.admin.inc',
-    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
   );
 
   //creates link to the package page
-  $items['admin/commerce/orders/%commerce_order/commerce_fulfillment/orders'] = array(
+  $items['admin/commerce/orders/%commerce_order/commerce_fulfillment/packages'] = array(
     'title' => t('Packages'),
     'page callback' => 'commerce_fulfillment_package_content',
     'page arguments' => array(3),
@@ -46,8 +54,6 @@ function commerce_fulfillment_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => -7,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-    'file' => 'commerce_fulfillment.admin.inc',
-    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
   );
 
   //Creates link to the shipment page.
@@ -59,32 +65,26 @@ function commerce_fulfillment_menu() {
     'access arguments' => array('update', 3),
     'type' => MENU_LOCAL_TASK,
     'weight' => 0,
-    'file' => 'commerce_fulfillment.admin.inc',
-    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
   );
 
   //Menu item for shipping label
-  $items['shipping_label/%'] = array(
+  $items['admin/commerce/orders/commerce_fulfillment/shipping_label/%'] = array(
     'title' => t('Shipping Label'),
     'page callback' => 'commerce_fulfillment_shipping_label_view',
-    'page arguments' => array(1),
+    'page arguments' => array(5),
     'access callback' => true,
-    'access arguments' => array('access content'),
+    'access arguments' => array('update'),
     'type' => MENU_CALLBACK,
-    'file' => 'commerce_fulfillment.admin.inc',
-    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
   );
 
   //Menu item for packing slip
-  $items['packing_slip/%'] = array(
+  $items['admin/commerce/orders/commerce_fulfillment/packing_slip/%'] = array(
     'title' => t('Packing Slip'),
     'page callback' => 'commerce_fulfillment_packing_slip_view',
-    'page arguments' => array(1),
+    'page arguments' => array(5),
     'access callback' => true,
-    'access arguments' => array('access content'),
+    'access arguments' => array('update'),
     'type' => MENU_CALLBACK,
-    'file' => 'commerce_fulfillment.admin.inc',
-    'file path' => drupal_get_path('module', 'commerce_fulfillment') . '/includes',
   );
 
   return $items;
@@ -407,17 +407,17 @@ function commerce_fulfillment_add_product_action(&$object, $context = array()){
   $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package_entity[$package]);
 
   foreach ($object as $line_item) {
-    $count = 0;
+    $in_package = FALSE;
 
     foreach ($package_wrapper->commerce_fulfillment_line_items->value() as $index) {
-
       if ($index->line_item_id == $line_item->line_item_id) {
+        $in_package = TRUE;
         drupal_set_message(t('Product @product_id already in Package @package', array('@product_id' => $line_item->line_item_id, '@package' => $package)),'error');
-        $count++;
+        break;
       }
     }
 
-    if($count == 0){
+    if($in_package == FALSE){
       $package_wrapper->commerce_fulfillment_line_items[] = $line_item->line_item_id;
     }
   }
@@ -443,10 +443,12 @@ function commerce_fulfillment_add_product_action_form($options){
     '#options' => commerce_fulfillment_get_array($order_id, 'false', 'package_in_order'),
     '#required' => true,
   );
+
   $form['commerce_fulfillment_order'] = array(
     '#type' => 'hidden',
     '#value' => $order_id
   );
+
   return $form;
 }
 
@@ -461,6 +463,7 @@ function commerce_fulfillment_add_product_action_form($options){
 function commerce_fulfillment_add_product_action_submit($form, &$form_state){
   $output['package'] = $form_state['values']['commerce_fulfillment_package'];
   $output['order_id'] = $form_state['values']['commerce_fulfillment_order'];
+
   return $output;
 }
 
@@ -533,6 +536,7 @@ function commerce_fulfillment_remove_product_action_form($options){
  */
 function commerce_fulfillment_remove_product_action_submit($form, &$form_state){
   $output['package_id'] = commerce_fulfillment_get_array($form_state['values']['commerce_fulfillment_order_id'], $form_state['values']['commerce_fulfillment_package_id'], 'package_in_order');
+
   return $output;
 }
 
@@ -550,20 +554,23 @@ function commerce_fulfillment_add_package_action(&$object, $context = array()){
   $shipment_wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $shipment_entity[$shipment]);
 
   foreach ($object as $package) {
-    $count = 0;
+    $in_shipment = FALSE;
+    $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package);
 
     foreach ($shipment_wrapper->commerce_fulfillment_packages->value() as $index) {
 
-      if ($index->package_id == $package->package_id) {
-        drupal_set_message(t('Package @package_id already in Shipment @shipment', array('@package_id' => $package->package_id, '@shipment' => $shipment)),'error');
-        $count++;
+      if ($index->package_id == $package_wrapper->package_id->value()) {
+        $in_shipment = TRUE;
+        drupal_set_message(t('Package @package_id already in Shipment @shipment', array('@package_id' => $package_wrapper->package_id->value(), '@shipment' => $shipment)),'error');
+        break;
       }
     }
 
-    if($count == 0){
-      $shipment_wrapper->commerce_fulfillment_packages[] = $package->package_id;
+    if($in_shipment == FALSE){
+      $shipment_wrapper->commerce_fulfillment_packages[] = $package_wrapper->package_id->value();
     }
   }
+
   $shipment_wrapper->save();
 }
 
@@ -586,10 +593,12 @@ function commerce_fulfillment_add_package_action_form($options){
     '#options' => commerce_fulfillment_get_array($order_id, 'false', 'shipment_in_order'),
     '#required' => true,
   );
+
   $form['commerce_fulfillment_order'] = array(
     '#type' => 'hidden',
     '#value' => $order_id
   );
+
   return $form;
 }
 
@@ -604,6 +613,7 @@ function commerce_fulfillment_add_package_action_form($options){
 function commerce_fulfillment_add_package_action_submit($form, &$form_state){
   $output['shipment'] = $form_state['values']['commerce_fulfillment_shipment'];
   $output['order_id'] = $form_state['values']['commerce_fulfillment_order'];
+
   return $output;
 }
 
@@ -658,10 +668,12 @@ function commerce_fulfillment_remove_package_action_form($options){
     '#options' => commerce_fulfillment_get_array($order_id, 'false', 'shipment_in_order'),
     '#required' => true,
   );
+
   $form['commerce_fulfillment_order_id'] = array(
     '#type' => 'hidden',
     '#value' => $order_id
   );
+
   return $form;
 }
 
@@ -674,252 +686,8 @@ function commerce_fulfillment_remove_package_action_form($options){
  */
 function commerce_fulfillment_remove_package_action_submit($form, &$form_state){
   $output['shipment_id'] = commerce_fulfillment_get_array($form_state['values']['commerce_fulfillment_order_id'], $form_state['values']['commerce_fulfillment_shipment_id'], 'shipment_in_order');
+
   return $output;
-}
-
-/**
- * @param $form_id
- * @param $args
- * @return array
- *
- * implements hook_forms
- * Allows for multiple forms to be applied to each page, each with their separate id and submit button.
- */
-function commerce_fulfillment_forms($form_id, $args){
-  $forms = array();
-
-  if (strpos($form_id, 'commerce_fulfillment_manipulate_package_form_') !== FALSE) {
-    $forms[$form_id] = array(
-      'callback' => 'commerce_fulfillment_manipulate_package_form_builder',
-      'callback arguments' => $args,
-    );
-  }
-
-  if (strpos($form_id, 'commerce_fulfillment_manipulate_shipment_form_') !== FALSE) {
-    $forms[$form_id] = array(
-      'callback' => 'commerce_fulfillment_manipulate_shipment_form_builder',
-      'callback arguments' => $args,
-    );
-  }
-
-  return $forms;
-}
-
-/**
- * @param $form
- * @param $form_state
- * @return array
- *
- * implements hook hook_form
- * Adds the select box and add button to the packages interface.
- */
-function commerce_fulfillment_manipulate_package_form_builder($form, &$form_state, $args){
-  $package_id = $args[0];
-  $order_id = $args[1];
-  $form = array();
-  $options = array(0 => t('Add Product'), 1 => t('Remove Product'), 2 => t('Delete Package'));
-
-  $form['commerce_fulfillment_package_id'] = array(
-    '#type' => 'hidden',
-    '#value' => $package_id,
-  );
-  $form['commerce_fulfillment_order_id'] = array(
-    '#type' => 'hidden',
-    '#value' => $order_id,
-  );
-  $form['commerce_fulfillment_product'] = array(
-    '#type' => 'select',
-    '#title' => t('Select Product to Add: '),
-    '#options' => commerce_fulfillment_get_array($order_id, 'false', 'commerce_order'),
-  );
-  $form['commerce_fulfillment_radios'] = array(
-    '#type' => 'radios',
-    '#title' => t('Options'),
-    '#default_value' => $options[0],
-    '#options' => $options
-  );
-  $form['commerce_fulfillment_add'] = array(
-    '#type' => 'submit',
-    '#value' => t('Submit')
-  );
-  $form['#submit'][] = 'commerce_fulfillment_manipulate_entity_form_submit';
-
-  return $form;
-}
-
-/**
- * @param $form
- * @param $form_state
- * @param $args
- * @return array
- *
- * implements hook hook_form
- * Adds the select box and add button to the packages interface.
- */
-function commerce_fulfillment_manipulate_shipment_form_builder($form, &$form_state, $args){
-  $options = array(0 => t('Add Package'),1 => t('Remove Package'), 2 => t('Delete Shipment'));
-  $shipment_id = $args[0];
-  $shipment = entity_load('commerce_fulfillment_shipment', FALSE, array('shipment_id'=>$shipment_id));
-
-  $order_id = $shipment[$shipment_id]->order_id;
-
-  $form['commerce_fulfillment_order_id'] = array(
-    '#type' => 'hidden',
-    '#value' => $order_id,
-  );
-  $form['commerce_fulfillment_shipment_id'] = array(
-    '#type' => 'hidden',
-    '#value' => $shipment_id,
-  );
-  $form['commerce_fulfillment_package'] = array(
-    '#type' => 'select',
-    '#title' => t('Select Package: '),
-    '#options' => commerce_fulfillment_get_array($order_id, 'false', 'package_in_order'),
-  );
-  $form['commerce_fulfillment_radios'] = array(
-    '#type' => 'radios',
-    '#title'=>t('Options'),
-    '#default_value' => $options[0],
-    '#options' => $options
-  );
-  $form['commerce_fulfillment_add'] = array(
-    '#type' => 'submit',
-    '#value' => t('Submit'),
-  );
-  $form['#submit'][] = 'commerce_fulfillment_manipulate_entity_form_submit';
-
-  return $form;
-}
-
-function commerce_fulfillment_manipulate_entity_form_submit($form, &$form_state) {
-
-  if (isset($form_state['values']['commerce_fulfillment_shipment_id'])) {
-
-    //loads shipment
-    $shipment_id = $form_state['values']['commerce_fulfillment_shipment_id'];
-    $shipment = entity_load('commerce_fulfillment_shipment', FALSE, array('shipment_id' => $shipment_id));
-
-    //gets the argument to add/remove from the shipment
-    $argument = commerce_fulfillment_get_array($form_state['values']['commerce_fulfillment_order_id'], $form_state['values']['commerce_fulfillment_package'], 'package_in_order');
-
-    //sets the wrapper and field variable to what we need if we are manipulating a shipment
-    $wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $shipment[$shipment_id]);
-    $field = 'commerce_fulfillment_packages';
-    $type2 = 'Shipment';
-    $id = $shipment_id;
-    $type1 = 'Package';
-
-    //checks if there is a package with the argument ID
-    $p_array = $wrapper->commerce_fulfillment_packages->value();
-  }
-  else {
-
-    //loads the package entity
-    $order_id = $form_state['values']['commerce_fulfillment_order_id'];
-    $package_id[0] = $form_state['values']['commerce_fulfillment_package_id'];
-    $package = entity_load('commerce_fulfillment_package', $package_id, array('order_id' => $order_id));
-
-    //sets the wrapper and field variable to what we need if we are manipulating a shipment
-    $wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package[$package_id[0]]);
-    $field = 'commerce_fulfillment_line_items';
-    $type2 = 'Package';
-    $id = $package_id[0];
-    $type1 = 'Product';
-
-    //creates an array of line_items in the specific package.
-    $p_array = array();
-    foreach ($wrapper->commerce_fulfillment_line_items->value() as $line_item) {
-      $p_array[] = $line_item;
-    }
-
-    $argument = commerce_fulfillment_get_array($order_id, $form_state['values']['commerce_fulfillment_product'], 'commerce_order');
-
-  }
-
-  //add a product to a package
-  if ($form_state['values']['commerce_fulfillment_radios'] == 0) {
-    $count = 0;
-    if (isset($p_array)) {
-
-      foreach ($p_array as $p_id) {
-
-        if (isset($p_id->type)) {
-          $line_item = entity_metadata_wrapper('commerce_line_item', $p_id);
-          $p_id = $line_item->line_item_id->value();
-        }
-        else{
-          $package = entity_metadata_wrapper('commerce_fulfillment_package', $p_id);
-          $p_id = $package->package_id->value();
-        }
-        if($p_id == $argument){
-          $count++;
-          drupal_set_message(t('@type1 @argument is already in @type2 @id.', array('@type1' => $type1, '@type2' => $type2, '@argument' => $argument, '@id' => $id)), 'error');
-        }
-      }
-    }
-
-    if ($count == 0) {
-      if(isset($wrapper->{$field}->value()[0])){
-        if($type2 == 'Shipment'){
-          $id2 = $argument;
-          $argument = entity_load('commerce_fulfillment_package', FALSE, array('package_id' => $argument));
-          $argument_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $argument[$id2]);
-          $argument = $argument[$argument_wrapper->package_id->value()];
-        }
-        $wrapper->{$field}[] = $argument;
-      }
-      else{
-
-        if($type2 == 'Shipment'){
-          $id2 = $argument;
-          $argument = entity_load('commerce_fulfillment_package', FALSE, array('package_id' => $argument));
-          $argument_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $argument[$id2]);
-          $argument = $argument[$argument_wrapper->package_id->value()];
-        }
-        $wrapper->{$field}[] = $argument;
-      }
-
-      $wrapper->save();
-    }
-  }
-  //remove a product from a package
-  elseif($form_state['values']['commerce_fulfillment_radios'] == 1) {
-    $count = 0;
-    $success_count = 0;
-
-    foreach ($p_array as $index) {
-
-      if(isset($index->type)) {
-        $line_item = entity_metadata_wrapper('commerce_line_item', $index);
-        $index = $line_item->line_item_id->value();
-        $type1 = 'Product';
-      }
-      else{
-        $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $index);
-        $index = $package_wrapper->package_id->value();
-        $id = $shipment_id;
-        $type1 = 'Package';
-      }
-
-      if ($index == $argument) {
-        unset($wrapper->{$field}[$count]);
-        $wrapper->save();
-        drupal_set_message(t('@type1 @argument deleted from @type2 @id.', array('@type1' => $type1, '@type2' => $type2, '@argument' => $argument, '@id' => $id)));
-        $success_count++;
-      }
-      $count++;
-    }
-
-    if($success_count == 0){
-
-      drupal_set_message(t('@type1 @argument not found in @type2 @id.', array('@type1' => $type1, '@type2' => $type2, '@argument' => $argument, '@id' => $id)));
-    }
-  }
-  //delete entity
-  elseif($form_state['values']['commerce_fulfillment_radios']==2){
-    $wrapper->delete();
-    drupal_set_message(t('@type2 @id deleted.', array('@type2' => $type2, '@id' => $id)));
-  }
 }
 
 /**
@@ -933,41 +701,39 @@ function commerce_fulfillment_manipulate_entity_form_submit($form, &$form_state)
  * Otherwise just returns the array.
  */
 function commerce_fulfillment_get_array($order_id, $index = 'false', $type){
-  //@TODO - Turn this into a switch
-  $id_array = array();
-  //creates an array of products in a commerce order. Returns selected product if one chosen.
-  if($type == 'commerce_order'){
-    $entity_array = array();
-    $entity_array[] = commerce_order_load($order_id);
-  }
-  //creates an array of products in a commerce order. Returns selected product if one chosen.
-  elseif($type == 'package_in_order'){
-    $entity_array = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
 
-    foreach($entity_array as $entity){
-      $entity = entity_metadata_wrapper('commerce_fulfillment_package', $entity);
-      $id_array[] = $entity->package_id->value();
-    }
-    if($index == 'false') {
-      return $id_array;
-    }
-    return $id_array[$index];
-  }
-  elseif($type == 'shipment_in_order'){
-    $entity_array = entity_load('commerce_fulfillment_shipment', FALSE, array('order_id' => $order_id));
-    foreach($entity_array as $entity){
-      $entity = entity_metadata_wrapper('commerce_fulfillment_shipment', $entity);
-      $id_array[] = $entity->shipment_id->value();
-    }
-    if($index == 'false') {
-      return $id_array;
-    }
-    else {
+  $id_array = array();
+  $entity_array = array();
+
+    //creates an array of package in a commerce order. Returns selected package if one chosen.
+    if($type == 'package_in_order') {
+      $entity_array = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
+
+      foreach ($entity_array as $entity) {
+        $entity = entity_metadata_wrapper('commerce_fulfillment_package', $entity);
+        $id_array[] = $entity->package_id->value();
+      }
+
+      if ($index == 'false') {
+        return $id_array;
+      }
+
       return $id_array[$index];
-    }
-  }
-  else {
-    $entity_array = entity_load($type, FALSE, array('order_id' => $order_id));
+
+    } elseif($type == 'shipment_in_order') {
+    //creates an array of shipments in a commerce order. Returns selected shipment if one chosen.
+      $entity_array = entity_load('commerce_fulfillment_shipment', FALSE, array('order_id' => $order_id));
+
+      foreach ($entity_array as $entity) {
+        $entity = entity_metadata_wrapper('commerce_fulfillment_shipment', $entity);
+        $id_array[] = $entity->shipment_id->value();
+      }
+
+      if ($index == 'false') {
+        return $id_array;
+      }
+
+        return $id_array[$index];
   }
 
   foreach ($entity_array as $entity) {
@@ -993,6 +759,395 @@ function commerce_fulfillment_get_array($order_id, $index = 'false', $type){
   return $id_array[$index];
 
 }
+
+
+/**
+ * @param $order
+ * @return string
+ *
+ * Builds the package page.
+ * Pulls in Order info and displays the name of the products in chosen Order.
+ *
+ */
+function commerce_fulfillment_package_content($order){
+
+  $order_wrapper = entity_metadata_wrapper( 'commerce_order', $order);
+  $order_id = $order_wrapper->order_id->value();
+
+  $get_form = drupal_get_form('commerce_fulfillment_create_package_form', $order_id);
+  $output = drupal_render($get_form);
+
+  $output .= '<h2>' . t('Products in Order @order_id:', array('@order_id' => $order_id)) . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_line_items', 'line_item_block', $order_id);
+
+  $output .= '<h2>' . t('Packages:') . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_packages', 'package_package_block', $order_id);
+
+  return $output;
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ * @param $order_id
+ * @return array
+ *
+ * implements hook_form
+ * adds functionality to create a package
+ *
+ */
+function commerce_fulfillment_create_package_form($form, &$form_state, $order_id){
+
+  $package_type = variable_get('commerce_fulfillment_package_type', array(0 => 'No Package Type set.'));
+
+  $form = array();
+
+  $form['commerce_fulfillment_order_id'] = array(
+    '#type' => 'hidden',
+    '#value' => $order_id,
+  );
+
+  $form['commerce_fulfillment_title'] = array(
+    '#markup' => '<h2>Create a New Package:</h2>'
+  );
+
+  $form['commerce_fulfillment_package_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Select package type: '),
+    '#options' => $package_type,
+    '#default_value' => 'default',
+  );
+
+  $form['commerce_fulfillment_create'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create a Package')
+  );
+
+  return $form;
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ *
+ * implements hook_form_submit
+ */
+function commerce_fulfillment_create_package_form_submit($form, &$form_state){
+
+  $package_type = variable_get('commerce_fulfillment_package_type', array('No Package Type set.'));
+
+  //create an order entity wrapper
+  $order_id = $form_state['values']['commerce_fulfillment_order_id'];
+  $order = commerce_order_load($order_id);
+  $order_wrapper= entity_metadata_wrapper('commerce_order', $order);
+
+  //create a profile entity wrapper
+  $profile_id = $order_wrapper->commerce_customer_billing->profile_id->value();
+  $profile = commerce_customer_profile_load($profile_id);
+  $profile_wrapper = entity_metadata_wrapper('commerce_customer_profile', $profile);
+
+  //create the package entity
+  $entity = entity_create('commerce_fulfillment_package', array(
+    'order_id' => $order_wrapper->order_id->value(),
+    'box_type' => $package_type[$form_state['values']['commerce_fulfillment_package_type']],
+    'commerce_fulfillment_line_items' => NULL,
+  ));
+
+  $entity->save('commerce_fulfillment_package', $entity);
+
+  //commerce_fulfillment_package will not save from the entity_create. So we create an Entity Metadata Wrapper to do the job.
+  $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $entity);
+  $shipping_array = array(
+    $profile_wrapper->commerce_customer_address->first_name->value(),
+    $profile_wrapper->commerce_customer_address->last_name->value(),
+    $profile_wrapper->commerce_customer_address->thoroughfare->value(),
+    $profile_wrapper->commerce_customer_address->locality->value(),
+    $profile_wrapper->commerce_customer_address->administrative_area->value(),
+    $profile_wrapper->commerce_customer_address->postal_code->value(),
+    $profile_wrapper->commerce_customer_address->country->value(),
+    array(
+      date('ymd'),
+    ),
+  );
+
+  $package_wrapper->commerce_fulfillment_shipping->set($shipping_array);
+  $package_wrapper->save();
+}
+
+/**
+ * @param $package_id
+ * @return string|void
+ *
+ * Tests to make sure user only selected one package.
+ * If user selected more than one package redirects the user back to the package page.
+ */
+function commerce_fulfillment_packing_slip_view($package_id){
+  if (strstr($package_id, ',')) {
+    drupal_set_message(t('Please select only one Package'), 'error');
+    $package_id = strtok($package_id, ',');
+    $package = entity_load('commerce_fulfillment_package', FALSE, array('package_id'=>$package_id));
+    $package = $package[$package_id];
+    $order_id = $package->order_id;
+    drupal_goto('admin/commerce/orders/'.$order_id.'/commerce_fulfillment/packages');
+  }
+  else {
+    commerce_fulfillment_packing_slip_content($package_id);
+  }
+}
+
+/**
+ * @param $package_id
+ *
+ * The page to show and print the packing slip
+ *
+ */
+function commerce_fulfillment_packing_slip_content($package_id){
+
+  $package_selected = entity_load('commerce_fulfillment_package', FALSE, array('package_id' => $package_id));
+  $package_wrapper = entity_metadata_wrapper('commerce_fulfillment_package', $package_selected[$package_id]);
+
+  $products = $package_wrapper->commerce_fulfillment_line_items->value();
+  $shipping = $package_wrapper->commerce_fulfillment_shipping->value();
+  $package_type = $package_wrapper->box_type->value();
+
+  $order_id = $package_wrapper->order_id->value();
+
+  $packages = entity_load('commerce_fulfillment_package', FALSE, array('order_id' => $order_id));
+  $count = count($packages);
+
+  $image = variable_get('commerce_fulfillment_logo', NULL);
+
+  // If user goes back and removes the logo, commerce_fulfillment_logo will be set to zero.
+  // So we check for both NULL and 0
+  if ($image !== 0 && $image !== NULL) {
+    $image_obj = file_load($image);
+    if (isset($image_obj->uri)) {
+      $image_obj_url = file_create_url($image_obj->uri);
+    }
+  } else {
+    drupal_set_message(t('Please upload Company Logo and set Company Information under Store Settings'), 'error');
+    drupal_goto('admin/commerce/orders/'.$order_id.'/commerce_fulfillment/packages');
+  }
+
+  $company = variable_get('commerce_fulfillment_company', '[Company]');
+  $address = variable_get('commerce_fulfillment_address', '[Company Address]');
+  $phone = variable_get('commerce_fulfillment_phone', '[Company Phone]');
+
+  $page = commerce_fulfillment_page_prerequisite();
+
+  $output = theme('packing_slip', array(
+    'company' => $company,
+    'address' => $address,
+    'phone' => $phone,
+    'image' => $image_obj_url,
+    'package_type' => $package_type,
+    'shipping' => $shipping,
+    'products' => $products,
+    'count' => $count,
+    'page' => $page,
+  ));
+
+  drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+  drupal_send_headers();
+
+  print $output;
+
+}
+
+/**
+ * @param $order
+ * @return string
+ *
+ * Builds the shipments page
+ *
+ */
+function commerce_fulfillment_shipment_content($order) {
+
+  $order_id = $order->order_id;
+
+  $get_form = drupal_get_form('commerce_fulfillment_create_shipment_form', $order_id);
+  $output = drupal_render($get_form);
+
+  $output .= '<h2>' . t('Packages:') . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_packages', 'package_shipment_block', $order_id);
+
+  $output .= '<h2>' . t('Shipments:') . '</h2>';
+  $output .= views_embed_view('commerce_fulfillment_shipments', 'default', $order_id);
+
+  return $output;
+}
+
+/**
+ * @param $form
+ * @param $form_state
+ * @param $order_id
+ * @return array
+ *
+ * Implements hook_form
+ * Implements form to create a new shipment object
+ * Allows user to set the tracking number if desired
+ *
+ */
+function commerce_fulfillment_create_shipment_form($form, &$form_state,$order_id){
+
+  $form = array();
+
+  $form['commerce_fulfillment_order_id'] = array(
+    '#type' => 'hidden',
+    '#value' => $order_id,
+  );
+
+  $form['commerce_fulfillment_title'] = array(
+    '#markup'=>'<h2>' . t('Create a New Shipment:') . '</h2>',
+  );
+
+  $form['commerce_fulfillment_tracking_number'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Enter tracking number:'),
+    '#size' => 20,
+    '#length' => 255,
+    '#required' => false,
+  );
+
+  $form['commerce_fulfillment_create'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create Shipment')
+  );
+
+  return $form;
+}
+
+function commerce_fulfillment_create_shipment_form_submit(&$form, &$form_state)
+{
+
+  $order_id = $form_state['values']['commerce_fulfillment_order_id'];
+  $order = commerce_order_load($order_id);
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $profile = commerce_customer_profile_load($order_wrapper->commerce_customer_shipping->profile_id->value());
+
+  $profile_wrapper = entity_metadata_wrapper('commerce_customer_profile', $profile);
+
+  $entity = entity_create('commerce_fulfillment_shipment', array(
+    'order_id' => $order->order_id,
+    'status' => 'Pending',
+    'tracking_number' => $form_state['values']['commerce_fulfillment_tracking_number'],
+  ));
+
+  $entity->save('commerce_fulfillment_shipment', $entity);
+
+  //commerce_fulfillment_shipping will not save from the entity_create. So we create an Entity Metadata Wrapper to do the job.
+  $shipment_wrapper = entity_metadata_wrapper('commerce_fulfillment_shipment', $entity);
+  $shipping_array = array(
+    $profile_wrapper->commerce_customer_address->first_name->value(),
+    $profile_wrapper->commerce_customer_address->last_name->value(),
+    $profile_wrapper->commerce_customer_address->thoroughfare->value(),
+    $profile_wrapper->commerce_customer_address->locality->value(),
+    $profile_wrapper->commerce_customer_address->administrative_area->value(),
+    $profile_wrapper->commerce_customer_address->postal_code->value(),
+    $profile_wrapper->commerce_customer_address->country->value(),
+    array(
+      date('ymd'),
+    ),
+  );
+
+  $shipment_wrapper->commerce_fulfillment_shipping->set($shipping_array);
+  $shipment_wrapper->save();
+}
+
+/**
+ * @param $shipment_id
+ * @return string|void
+ *
+ * Tests to make sure user only selected one shipment.
+ * If user selected more than one shipment redirects the user back to the shipments page.
+ */
+function commerce_fulfillment_shipping_label_view($shipment_id){
+  if (strstr($shipment_id, ',')) {
+    drupal_set_message(t('Please select only one Shipment'), 'error');
+    $shipment_id = strtok($shipment_id, ',');
+    $shipment = entity_load('commerce_fulfillment_shipment', FALSE, array('shipment_id'=>$shipment_id));
+    $shipment = $shipment[$shipment_id];
+    $order_id = $shipment->order_id;
+    drupal_goto('admin/commerce/orders/'.$order_id.'/commerce_fulfillment/shipments');
+  }
+  else {
+    commerce_fulfillment_shipping_label_content($shipment_id);
+  }
+}
+
+/**
+ * @param $shipment_id
+ * @return string
+ *
+ * Prints the shipping label on its own page. Takes in the shipment_id and loads the shipment.
+ * Prints Company name, address, phone # and logo from the administrator page.
+ *
+ */
+function commerce_fulfillment_shipping_label_content($shipment_id){
+  $shipment_arr = entity_load('commerce_fulfillment_shipment', FALSE, array('shipment_id' => $shipment_id));
+  $shipment = $shipment_arr[$shipment_id];
+  $shipment = entity_metadata_wrapper('commerce_fulfillment_shipment', $shipment);
+
+  $shipping = $shipment->commerce_fulfillment_shipping->value();
+  $tracking_number = $shipment->tracking_number->value();
+  $order_id = $shipment->order_id->value();
+  $image = variable_get('commerce_fulfillment_logo', NULL);
+
+  // If user goes back and removes the logo, commerce_fulfillment_logo will be set to zero.
+  // So we check for both NULL and 0
+  if ($image !== 0 && $image !== NULL) {
+    $image_obj = file_load($image);
+    if (isset($image_obj->uri)) {
+      $image_obj_url = file_create_url($image_obj->uri);
+    }
+  } else {
+    drupal_set_message(t('Please upload Company Logo and set Company Information under Store Settings'), 'error');
+    drupal_goto('admin/commerce/orders/'.$order_id.'/commerce_fulfillment/shipments');
+  }
+
+  $company = variable_get('commerce_fulfillment_company');
+  $address = variable_get('commerce_fulfillment_address');
+  $phone = variable_get('commerce_fulfillment_phone');
+
+
+  $page = commerce_fulfillment_page_prerequisite();
+
+  $output = theme('shipping_label', array(
+    'company' => $company,
+    'address' => $address,
+    'phone' => $phone,
+    'image' => $image_obj_url,
+    'shipping' => $shipping,
+    'tracking_number' => $tracking_number,
+    'page' => $page,
+  ));
+
+  drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+  drupal_send_headers();
+  print $output;
+
+}
+
+/**
+ * Prepare the array for the template with common details
+ * @see more _print_var_generator() in print.pages.inc of the Print module
+ */
+function commerce_fulfillment_page_prerequisite(){
+  global $base_url, $language;
+  $page = array();
+  $page['language'] = $language->language;
+  $page['head'] = drupal_get_html_head();
+  $page['title'] = '';
+  $page['scripts'] = drupal_get_js();
+  $page['favicon'] = '';
+  drupal_add_css(drupal_get_path('module', 'commerce_fulfillment') . '/css/commerce_fulfillment.css');
+  $page['css'] = drupal_get_css();
+  $page['message'] = drupal_get_messages();
+  $page['footer_scripts'] = drupal_get_js('footer');
+
+  return $page;
+}
+
 class shipmentEntityController extends EntityAPIController{
 }
 
