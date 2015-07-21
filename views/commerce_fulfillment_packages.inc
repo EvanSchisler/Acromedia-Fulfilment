@@ -187,9 +187,15 @@ $handler->display->display_options['fields']['views_bulk_operations']['vbo_setti
 $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['force_single'] = 0;
 $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['entity_load_capacity'] = '10';
 $handler->display->display_options['fields']['views_bulk_operations']['vbo_operations'] = array(
-'action::commerce_fulfillment_add_action' => array(
+'action::commerce_fulfillment_add_package_action' => array(
 'selected' => 0,
-'skip_confirmation' => 1,
+'skip_confirmation' => 0,
+'override_label' => 0,
+'label' => '',
+),
+'action::commerce_fulfillment_add_product_action' => array(
+'selected' => 0,
+'skip_confirmation' => 0,
 'override_label' => 0,
 'label' => '',
 ),
@@ -233,12 +239,18 @@ $handler->display->display_options['fields']['views_bulk_operations']['vbo_opera
 'override_label' => 1,
 'label' => 'Print Packing Slip',
 'settings' => array(
-'url' => 'packing_slip',
+'url' => 'admin/commerce/orders/commerce_fulfillment/packing_slip/',
 ),
 ),
-'action::commerce_fulfillment_remove_action' => array(
+'action::commerce_fulfillment_remove_package_action' => array(
 'selected' => 0,
-'skip_confirmation' => 1,
+'skip_confirmation' => 0,
+'override_label' => 0,
+'label' => '',
+),
+'action::commerce_fulfillment_remove_product_action' => array(
+'selected' => 0,
+'skip_confirmation' => 0,
 'override_label' => 0,
 'label' => '',
 ),
