@@ -1,10 +1,8 @@
 name = Commerce Fulfillment
-description = A eCommerce add-on module to assist with the shipping process.
+description = A Commerce add-on module to assist with the shipping process.
 core = 7.x
 package = Commerce
 dependencies[] = commerce (7.x-1.x)
 dependencies[] = entity (7.x-1.x)
 dependencies[] = views (7.x-3.x)
-files[] = commerce_fulfillment.test
-testing_api = 2.x
 configure = admin/config/content/commerce_fulfillment
