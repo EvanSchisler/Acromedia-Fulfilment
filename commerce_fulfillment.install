@@ -33,6 +33,20 @@ function commerce_fulfillment_schema() {
       ),
     ),
     'primary key' => array('package_id'),
+    'foreign keys' => array(
+      'order_id' => array(
+        'table' => 'commerce_order',
+        'columns' => array('order_id' => 'order_id'),
+      ),
+      'commerce_fulfillment_line_items' => array(
+        'table' => 'commerce_line_item',
+        'columns' => array('commerce_fulfillment_line_item' => 'line_item_id'),
+      ),
+      'commerce_fulfillment_shipping' => array(
+        'table' => 'commerce_customer_profile',
+        'columns' => array('commerce_fulfillment_shipping' => 'profile_id'),
+      ),
+    ),
   );
 
   $schema['commerce_fulfillment_shipments'] = array(
@@ -63,6 +77,16 @@ function commerce_fulfillment_schema() {
       ),
     ),
     'primary key' => array('shipment_id'),
+    'foreign keys' => array(
+      'commerce_fulfillment_packages' => array(
+        'table' => 'commerce_fulfillment_packages',
+        'columns' => array('commerce_fulfillment_packages' => 'commerce_fulfillment_packages'),
+      ),
+      'commerce_fulfillment_shipping' => array(
+        'table' => 'commerce_fulfillment_packages',
+        'columns' => array('commerce_fulfillment_shipping' => 'commerce_fulfillment_shipping'),
+      ),
+    ),
   );
 
   return $schema;
