@@ -68,7 +68,7 @@ function commerce_fulfillment_menu() {
     'title' => 'Shipping Label',
     'page callback' => 'commerce_fulfillment_shipping_label_check',
     'page arguments' => array(5),
-    'access callback' => TRUE,
+    'access callback' => 'commerce_order_access',
     'access arguments' => array('update'),
     'type' => MENU_CALLBACK,
   );
@@ -77,7 +77,7 @@ function commerce_fulfillment_menu() {
     'title' => 'Packing Slip',
     'page callback' => 'commerce_fulfillment_packing_slip_check',
     'page arguments' => array(5),
-    'access callback' => TRUE,
+    'access callback' => 'commerce_order_access',
     'access arguments' => array('update'),
     'type' => MENU_CALLBACK,
   );
@@ -96,6 +96,7 @@ function commerce_fulfillment_views_api() {
  * Implements hook_views_default_views().
  */
 function commerce_fulfillment_views_default_views() {
+  $view = array();
 
   $files = file_scan_directory(drupal_get_path('module', 'commerce_fulfillment') . '/views', '/.*\.inc$/');
 
