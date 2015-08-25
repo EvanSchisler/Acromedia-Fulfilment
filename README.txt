@@ -1,28 +1,44 @@
+
+INTRODUCTION
+------------
+
 Welcome to Commerce Fulfillment.
 
-Installing Commerce Fulfillment:
+This module allows admin users to ease the process of fulfilling and shipping
+orders that were made through Commerce.
 
-Place the module directory into sites/all/modules.
-Enable module under Site Settings->Advanced Settings->Modules
-You must have Commerce, Entity and Views enabled to use Commerce Fulfillment.
+ * For a full description of the module, visit the product page:
+   https://www.drupal.org/sandbox/gamerwamer/2507083
 
-Configuring Commerce Fulfillment:
-Go to Store Settings->Advanced Store Settings->Commerce Fulfillment.
-Click Admin Options.
-Enter in Company Information, Custom Package types you wish to use, and upload a company logo.
-*You will not be able to print packing slips and shipping labels without completing this form.*
-**There are no default package types**
+ * To submit bug reports and feature suggestions, or to track changes:
+   https://www.drupal.org/project/issues/2507083?status=All&categories=All
 
-Using Commerce Fulfillment:
-Go to Orders->Manage Orders. Select an order and edit that order, then click the Fulfillment tab.
-Start by selecting a Package Type and creating your first Package.
-Then add products to the package by selecting the desired products in the order by the select boxes and clicking 'Add
-Product to Package'.
-You can remove a product from a package the same way except by clicking 'Remove Product from Package'.
-You are also able to delete a package and print a packing slip, in the same manner, in the view below.
-After you have configured the packages in the way you want them you can either print a packing slip or go to the
-Shipments page.
-You can create a shipment and place a package into a shipment the same way we did with products and packages.
-You can also delete shipments and print a shipping label.
+REQUIREMENTS
+------------
 
-Thanks for downloading Commerce Fulfillment!
+This module requires the following modules:
+
+ * Views (https://www.drupal.org/project/views)
+ * Commerce (https://www.drupal.org/project/commerce)
+ * Entity (https://www.drupal.org/project/entity)
+
+INSTALLATION
+------------
+
+ * Install as you would normally install a contributed Drupal module. See:
+   https://drupal.org/documentation/install/modules-themes/modules-7
+   for further information.
+
+CONFIGURATION
+-------------
+
+ * Go to Store Settings->Advanced Store Settings->Commerce Fulfillment.
+
+   - Click Admin Options.
+
+   - Enter in Company Information, Custom Package types you wish to use,
+     and upload a company logo.
+
+     *You will not be able to print packing slips and shipping labels without
+      completing this form.*
+     **There are no default package types**
